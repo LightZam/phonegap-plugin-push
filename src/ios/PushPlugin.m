@@ -141,7 +141,7 @@
     NSLog(@"Push Plugin register success: %@", deviceToken);
     // -- GCM
     if (_gcmSenderID != nil) {
-        [self registerGCM];
+        [self registerGCM: deviceToken];
         return;
     }
 
@@ -352,7 +352,7 @@
             completionHandler = nil;
 // [GCM START]
 
-- (void)registerGCM {
+- (void)registerGCM:(NSData *)deviceToken {
     // Start the GGLInstanceID shared instance with the default config and request a registration token to enable reception of notifications
     [[GGLInstanceID sharedInstance] startWithConfig:[GGLInstanceIDConfig defaultConfig]];
     // 1 for sendbox(develop), or = 0 for production
