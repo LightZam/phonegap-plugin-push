@@ -113,6 +113,19 @@ static char launchNotificationKey;
             completionHandler(UIBackgroundFetchResultNewData);
         }
     }
+    // -- GCM
+    [[GCMService sharedInstance] appDidReceiveMessage:userInfo];
+}
+
+// -- GCM
+- (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo fetchCompletionHandler:(void (^)(UIBackgroundFetchResult))handler {
+    NSLog(@"Notification received: %@", userInfo);
+    // This works only if the app started the GCM service
+    [[GCMService sharedInstance] appDidReceiveMessage:userInfo];
+    // Handle the received message
+    // Invoke the completion handler passing the appropriate UIBackgroundFetchResult value
+    [self application:application didReceiveRemoteNotification:userInfo];
+    handler(UIBackgroundFetchResultNoData);
 }
 
 - (void)applicationDidBecomeActive:(UIApplication *)application {
@@ -133,6 +146,9 @@ static char launchNotificationKey;
         pushHandler.notificationMessage = self.launchNotification;
         self.launchNotification = nil;
         [pushHandler performSelectorOnMainThread:@selector(notificationReceived) withObject:pushHandler waitUntilDone:NO];
+
+        // -- GCM
+        [pushHandler setGcmServiceState:YES];
     }
 }
 
@@ -146,6 +162,11 @@ static char launchNotificationKey;
     }
 }
 
+// -- GCM
+- (void)onTokenRefresh {
+    PushPlugin *pushHandler = [self getCommandInstance:@"PushNotification"];
+    [pushHandler onTokenRefresh];
+}
 
 // The accessors use an Associative Reference since you can't define a iVar in a category
 // http://developer.apple.com/library/ios/#documentation/cocoa/conceptual/objectivec/Chapters/ocAssociativeReferences.html
