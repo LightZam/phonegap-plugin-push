@@ -72,13 +72,12 @@ static char launchNotificationKey;
         pushHandler.notificationMessage = userInfo;
         pushHandler.isInline = YES;
         [pushHandler notificationReceived];
-        
         completionHandler(UIBackgroundFetchResultNewData);
     }
     // app is in background or in stand by
     else {
         NSLog(@"app in-active");
-        
+
         // do some convoluted logic to find out if this should be a silent push.
         long silent = 0;
         id aps = [userInfo objectForKey:@"aps"];
@@ -88,7 +87,7 @@ static char launchNotificationKey;
         } else if ([contentAvailable isKindOfClass:[NSNumber class]]) {
             silent = [contentAvailable integerValue];
         }
-        
+
         if (silent == 1) {
             NSLog(@"this should be a silent push");
             void (^safeHandler)(UIBackgroundFetchResult) = ^(UIBackgroundFetchResult result){
@@ -96,10 +95,10 @@ static char launchNotificationKey;
                     completionHandler(result);
                 });
             };
-            
+
             NSMutableDictionary* params = [NSMutableDictionary dictionaryWithCapacity:2];
             [params setObject:safeHandler forKey:@"handler"];
-            
+
             PushPlugin *pushHandler = [self getCommandInstance:@"PushNotification"];
             pushHandler.notificationMessage = userInfo;
             pushHandler.isInline = NO;
@@ -109,23 +108,10 @@ static char launchNotificationKey;
             NSLog(@"just put it in the shade");
             //save it for later
             self.launchNotification = userInfo;
-            
+
             completionHandler(UIBackgroundFetchResultNewData);
         }
     }
-    // -- GCM
-    [[GCMService sharedInstance] appDidReceiveMessage:userInfo];
-}
-
-// -- GCM
-- (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo fetchCompletionHandler:(void (^)(UIBackgroundFetchResult))handler {
-    NSLog(@"Notification received: %@", userInfo);
-    // This works only if the app started the GCM service
-    [[GCMService sharedInstance] appDidReceiveMessage:userInfo];
-    // Handle the received message
-    // Invoke the completion handler passing the appropriate UIBackgroundFetchResult value
-    [self application:application didReceiveRemoteNotification:userInfo];
-    handler(UIBackgroundFetchResultNoData);
 }
 
 - (void)applicationDidBecomeActive:(UIApplication *)application {
@@ -136,7 +122,7 @@ static char launchNotificationKey;
     if (pushHandler.clearBadge) {
         NSLog(@"PushPlugin clearing badge");
         //zero badge
-        application.applicationIconBadgeNumber = 0;        
+        application.applicationIconBadgeNumber = 0;
     } else {
         NSLog(@"PushPlugin skip clear badge");
     }
@@ -162,11 +148,32 @@ static char launchNotificationKey;
     }
 }
 
-// -- GCM
+// [GCM START]
+// -- active when received notification
+- (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo fetchCompletionHandler:(void (^)(UIBackgroundFetchResult))handler {
+    NSLog(@"Notification received: %@", userInfo);
+    // This works only if the app started the GCM service
+    [[GCMService sharedInstance] appDidReceiveMessage:userInfo];
+    // Handle the received message
+    // Invoke the completion handler passing the appropriate UIBackgroundFetchResult value
+    [self application:application didReceiveRemoteNotification:userInfo];
+    // update badge number
+    NSUserDefaults *target = [NSUserDefaults standardUserDefaults];
+    NSInteger localBadge = [[target objectForKey:@"Badge"] integerValue];    if (localBadge != 0) {
+        NSInteger serverBadge = [[[userInfo objectForKey:@"aps"] objectForKey:@"badge"] integerValue];
+        NSInteger totalBadge = serverBadge + localBadge;
+        application.applicationIconBadgeNumber = totalBadge;
+        handler(UIBackgroundFetchResultNewData);
+    } else {
+        handler(UIBackgroundFetchResultNoData);
+    }
+}
+// refresh push token
 - (void)onTokenRefresh {
     PushPlugin *pushHandler = [self getCommandInstance:@"PushNotification"];
     [pushHandler onTokenRefresh];
 }
+// [GCM END]
 
 // The accessors use an Associative Reference since you can't define a iVar in a category
 // http://developer.apple.com/library/ios/#documentation/cocoa/conceptual/objectivec/Chapters/ocAssociativeReferences.html
