@@ -114,6 +114,35 @@ static char launchNotificationKey;
     }
 }
 
+// -- GCM
+- (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo fetchCompletionHandler:(void (^)(UIBackgroundFetchResult))handler {
+    NSLog(@"Notification received: %@", userInfo);
+    // This works only if the app started the GCM service
+    [[GCMService sharedInstance] appDidReceiveMessage:userInfo];
+    // Handle the received message
+    [self application:application didReceiveRemoteNotification:userInfo];
+
+    // update badge number
+    NSUserDefaults *target = [NSUserDefaults standardUserDefaults];
+    NSInteger localBadge = [[target objectForKey:@"Badge"] integerValue];
+    if (localBadge != 0) {
+        NSInteger serverBadge = [[[userInfo objectForKey:@"aps"] objectForKey:@"badge"] integerValue];
+        NSInteger totalBadge = serverBadge + localBadge;
+        // FIXME : use server side to replace this (update local preference's badge)
+        if (serverBadge == 1) {
+            [target setObject:[NSNumber numberWithInteger:totalBadge] forKey:@"Badge"];
+        } else if (serverBadge == 2) {
+            totalBadge = totalBadge - 1;
+        }
+        // set badge to icon
+        application.applicationIconBadgeNumber = totalBadge;
+        // finish fetch data
+        handler(UIBackgroundFetchResultNewData);
+    } else {
+        handler(UIBackgroundFetchResultNoData);
+    }
+}
+
 - (void)applicationDidBecomeActive:(UIApplication *)application {
 
     NSLog(@"active");
@@ -126,7 +155,6 @@ static char launchNotificationKey;
     } else {
         NSLog(@"PushPlugin skip clear badge");
     }
-
     if (self.launchNotification) {
         pushHandler.isInline = NO;
         pushHandler.notificationMessage = self.launchNotification;
@@ -148,32 +176,11 @@ static char launchNotificationKey;
     }
 }
 
-// [GCM START]
-// -- active when received notification
-- (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo fetchCompletionHandler:(void (^)(UIBackgroundFetchResult))handler {
-    NSLog(@"Notification received: %@", userInfo);
-    // This works only if the app started the GCM service
-    [[GCMService sharedInstance] appDidReceiveMessage:userInfo];
-    // Handle the received message
-    // Invoke the completion handler passing the appropriate UIBackgroundFetchResult value
-    [self application:application didReceiveRemoteNotification:userInfo];
-    // update badge number
-    NSUserDefaults *target = [NSUserDefaults standardUserDefaults];
-    NSInteger localBadge = [[target objectForKey:@"Badge"] integerValue];    if (localBadge != 0) {
-        NSInteger serverBadge = [[[userInfo objectForKey:@"aps"] objectForKey:@"badge"] integerValue];
-        NSInteger totalBadge = serverBadge + localBadge;
-        application.applicationIconBadgeNumber = totalBadge;
-        handler(UIBackgroundFetchResultNewData);
-    } else {
-        handler(UIBackgroundFetchResultNoData);
-    }
-}
-// refresh push token
+// -- GCM
 - (void)onTokenRefresh {
     PushPlugin *pushHandler = [self getCommandInstance:@"PushNotification"];
     [pushHandler onTokenRefresh];
 }
-// [GCM END]
 
 // The accessors use an Associative Reference since you can't define a iVar in a category
 // http://developer.apple.com/library/ios/#documentation/cocoa/conceptual/objectivec/Chapters/ocAssociativeReferences.html
