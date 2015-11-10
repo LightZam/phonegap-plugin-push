@@ -64,6 +64,9 @@ static char launchNotificationKey;
 
 - (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo fetchCompletionHandler:(void (^)(UIBackgroundFetchResult))completionHandler {
     NSLog(@"didReceiveNotification with fetchCompletionHandler");
+    // -- GCM
+    // This works only if the app started the GCM service
+    [[GCMService sharedInstance] appDidReceiveMessage:userInfo];
 
     // app is in the foreground so call notification callback
     if (application.applicationState == UIApplicationStateActive) {
@@ -111,35 +114,6 @@ static char launchNotificationKey;
 
             completionHandler(UIBackgroundFetchResultNewData);
         }
-    }
-}
-
-// -- GCM
-- (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo fetchCompletionHandler:(void (^)(UIBackgroundFetchResult))handler {
-    NSLog(@"Notification received: %@", userInfo);
-    // This works only if the app started the GCM service
-    [[GCMService sharedInstance] appDidReceiveMessage:userInfo];
-    // Handle the received message
-    [self application:application didReceiveRemoteNotification:userInfo];
-
-    // update badge number
-    NSUserDefaults *target = [NSUserDefaults standardUserDefaults];
-    NSInteger localBadge = [[target objectForKey:@"Badge"] integerValue];
-    if (localBadge != 0) {
-        NSInteger serverBadge = [[[userInfo objectForKey:@"aps"] objectForKey:@"badge"] integerValue];
-        NSInteger totalBadge = serverBadge + localBadge;
-        // FIXME : use server side to replace this (update local preference's badge)
-        if (serverBadge == 1) {
-            [target setObject:[NSNumber numberWithInteger:totalBadge] forKey:@"Badge"];
-        } else if (serverBadge == 2) {
-            totalBadge = totalBadge - 1;
-        }
-        // set badge to icon
-        application.applicationIconBadgeNumber = totalBadge;
-        // finish fetch data
-        handler(UIBackgroundFetchResultNewData);
-    } else {
-        handler(UIBackgroundFetchResultNoData);
     }
 }
 

@@ -127,8 +127,8 @@
     // -- GCM
     [self initGCM:iosOptions];
 
-    if (notificationMessage)			// if there is a pending startup notification
-        [self notificationReceived];	// go ahead and process it
+    if (notificationMessage)            // if there is a pending startup notification
+        [self notificationReceived];    // go ahead and process it
 
     }];
 }
@@ -350,6 +350,9 @@
             NSLog(@"Push Plugin: stopBackgroundTask (remaining t: %f)", app.backgroundTimeRemaining);
             completionHandler(UIBackgroundFetchResultNewData);
             completionHandler = nil;
+        }
+    }
+}
 // [GCM START]
 
 - (void)registerGCM:(NSData *)deviceToken {
