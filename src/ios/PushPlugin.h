@@ -64,6 +64,19 @@
 - (void)onTokenRefresh;
 // [END GCM]
 
+// [START GCM]
+@property(nonatomic, readonly, strong) NSString *gcmSenderID;
+@property(nonatomic, assign) id apnServerOption;
+@property(nonatomic, readonly, strong) NSDictionary *registrationOptions;
+@property(nonatomic, strong) void (^registrationHandler)(NSString *registrationToken, NSError *error);
+@property(nonatomic, assign) BOOL connectedToGCM;
+@property(nonatomic, strong) NSString* registrationToken;
+@property(nonatomic, assign) BOOL subscribedToTopic;
+
+- (void)setGcmServiceState:(BOOL)state;
+- (void)onTokenRefresh;
+// [END GCM]
+
 - (void)init:(CDVInvokedUrlCommand*)command;
 - (void)unregister:(CDVInvokedUrlCommand*)command;
 
